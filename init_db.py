@@ -1,10 +1,11 @@
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 from database import Base, SessionLocal, engine
+from logger import logger
 from models import User
 from security import generate_random_password, hash_password
 
-config = load_dotenv()
+config = dotenv_values(".env")
 
 
 def init_db():
@@ -27,11 +28,11 @@ def init_db():
             db.add(admin)
             db.commit()
 
-            print("✅ Initial admin user created")
-            print(f"📧 Email: {admin_email}")
-            print(f"🔑 Temporary password: {random_password}")
+            logger.info("✅ Initial admin user created")
+            logger.info(f"📧 Email: {admin_email}")
+            logger.info(f"🔑 Temporary password: {random_password}")
         else:
-            print("ℹ️ Admin user already exists")
+            logger.warning("ℹ️ Admin user already exists")
 
     finally:
         db.close()
