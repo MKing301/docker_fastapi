@@ -20,7 +20,7 @@ config = dotenv_values(".env")
 app = FastAPI(
     title="FastAPI JWT Auth",
     version="0.1.0",
-    description="A simple FastAPI app with JWT authentication.",
+    description="A demo FastAPI app with JWT authentication.",
 )
 
 DATABASE_URL = os.getenv("DATABASE_URL", config["DATABASE_URL"])
