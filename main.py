@@ -17,7 +17,11 @@ from logger import logger
 config = dotenv_values(".env")
 
 # --- App & DB Setup ---
-app = FastAPI()
+app = FastAPI(
+    title="FastAPI JWT Auth",
+    version="0.1.0",
+    description="A simple FastAPI app with JWT authentication.",
+)
 
 DATABASE_URL = os.getenv("DATABASE_URL", config["DATABASE_URL"])
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
