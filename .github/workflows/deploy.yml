@@ -2,7 +2,7 @@ name: FastAPI CI/CD Pipeline
 on:
   push:
     branches:
-      - feature/ouath2-jwt
+      - feature/oauth2-jwt
 
 jobs:
   build:
