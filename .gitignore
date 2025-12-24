@@ -12,6 +12,7 @@ wheels/
 
 # Database files
 test.db
+*.db
 
 # Log files
 logs/
