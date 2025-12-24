@@ -12,12 +12,14 @@ from sqlalchemy import Boolean, Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
+from logger import logger
+
 config = dotenv_values(".env")
 
 # --- App & DB Setup ---
 app = FastAPI()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+DATABASE_URL = os.getenv("DATABASE_URL", config["DATABASE_URL"])
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -74,8 +76,8 @@ def get_password_hash(password):
 
 
 # --- OAuth2 & JWT Setup ---
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY", config["SECRET_KEY"])
+ALGORITHM = config["ALGORITHM"]
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -123,12 +125,17 @@ async def get_current_user(
 
 
 # --- Background task ---
-def print_message(email: str):
-    print(f"User {email} has been created.")
+def log_message(email: str):
+    logger.info(f"User {email} has been created.")
 
 
 # --- Routes ---
 @app.get("/")
+async def welcome():
+    return {"message": "Welcome to the FastAPI app!"}
+
+
+@app.get("/health")
 async def healthcheck():
     return {"status": "ok"}
 
@@ -167,7 +174,7 @@ async def create_user(
     db.refresh(new_user)
 
     # Background task
-    background_tasks.add_task(print_message, new_user.email)
+    background_tasks.add_task(log_message, new_user.email)
 
     # Generate JWT token immediately
     access_token = create_access_token(data={"sub": new_user.email})
