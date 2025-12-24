@@ -136,7 +136,7 @@ def log_message(email: str):
 # --- Routes ---
 @app.get("/")
 async def welcome():
-    return {"message": "Welcome to the FastAPI app!"}
+    return {"message": "Welcome to the FastAPI app! Auto-deployed with GitHub Actions."}
 
 
 @app.get("/health")
