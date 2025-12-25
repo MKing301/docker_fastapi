@@ -9,8 +9,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt import PyJWTError
 from passlib.context import CryptContext
 from sqlalchemy import Boolean, Column, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from logger import logger
 
@@ -24,7 +23,15 @@ app = FastAPI(
 )
 
 DATABASE_URL = config["DATABASE_URL"]
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+    )
+else:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -42,18 +49,25 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 @app.on_event("startup")
 def create_initial_admin():
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-    admin_email = config["INITIAL_ADMIN_EMAIL"]
-    admin_password = config["INITIAL_ADMIN_PASSWORD"]
+    try:
+        admin_email = config["INITIAL_ADMIN_EMAIL"]
+        admin_password = config["INITIAL_ADMIN_PASSWORD"]
 
-    if not get_user(db, admin_email):
-        hashed_password = get_password_hash(admin_password)
-        admin = User(email=admin_email, hashed_password=hashed_password, is_admin=True)
-        db.add(admin)
-        db.commit()
-        db.refresh(admin)
-        print(f"Admin user {admin_email} created.")
-    db.close()
+        if not get_user(db, admin_email):
+            hashed_password = get_password_hash(admin_password)
+            admin = User(
+                email=admin_email,
+                hashed_password=hashed_password,
+                is_admin=True,
+            )
+            db.add(admin)
+            db.commit()
+            db.refresh(admin)
+            logger.info(f"Admin user {admin_email} created.")
+    finally:
+        db.close()
 
 
 # --- Models ---
@@ -64,8 +78,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
 
-
-Base.metadata.create_all(bind=engine)
 
 # --- Password hashing ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
