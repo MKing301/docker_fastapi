@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Annotated, Optional
 
 import jwt
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt import PyJWTError
@@ -13,7 +13,19 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from logger import logger
 
-config = dotenv_values(".env")
+load_dotenv()  # loads .env locally, does nothing in prod
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+INITIAL_ADMIN_EMAIL = os.getenv("INITIAL_ADMIN_EMAIL")
+INITIAL_ADMIN_PASSWORD = os.getenv("INITIAL_ADMIN_PASSWORD")
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is not set")
 
 # --- App & DB Setup ---
 app = FastAPI(
@@ -22,7 +34,7 @@ app = FastAPI(
     description="A demo FastAPI app with JWT authentication.",
 )
 
-DATABASE_URL = config["DATABASE_URL"]
+DATABASE_URL = DATABASE_URL
 
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
@@ -52,8 +64,8 @@ def create_initial_admin():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        admin_email = config["INITIAL_ADMIN_EMAIL"]
-        admin_password = config["INITIAL_ADMIN_PASSWORD"]
+        admin_email = INITIAL_ADMIN_EMAIL
+        admin_password = INITIAL_ADMIN_PASSWORD
 
         if not get_user(db, admin_email):
             hashed_password = get_password_hash(admin_password)
@@ -92,8 +104,8 @@ def get_password_hash(password):
 
 
 # --- OAuth2 & JWT Setup ---
-SECRET_KEY = os.getenv("SECRET_KEY", config["SECRET_KEY"])
-ALGORITHM = config["ALGORITHM"]
+SECRET_KEY = SECRET_KEY
+ALGORITHM = ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
